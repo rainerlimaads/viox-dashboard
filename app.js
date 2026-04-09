@@ -196,10 +196,12 @@ async function loadFromSheets(sheetId, apiKey, range) {
     day:       COL['Day']                        ?? 15,
   };
 
-  // Filter by date range
+  // Filter by date range (normalize dates from any format)
   const dataRows = rows.slice(1).filter(r => {
-    const d = r[C.day];
-    if (!d) return true; // include if no date
+    const raw = r[C.day];
+    if (!raw) return false; // exclude rows without date
+    const d = normalizeDate(raw);
+    if (!d) return false;
     return d >= range.from && d <= range.to;
   });
 
@@ -606,7 +608,35 @@ function renderDemo() {
 }
 
 // ─── UTILS ─────────────────────────────────────
-function num(v) { if (!v && v!==0) return 0; return parseFloat(String(v).replace(',','.')) || 0; }
+function num(v) {
+  if (!v && v !== 0) return 0;
+  let s = String(v).trim();
+  if (!s) return 0;
+  // Handle Brazilian number format: "1.879,76" → 1879.76, "106,28" → 106.28
+  const dotIdx   = s.lastIndexOf('.');
+  const commaIdx = s.lastIndexOf(',');
+  if (commaIdx > dotIdx) {
+    // Comma is decimal separator (BR): remove thousand dots, replace comma with dot
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (dotIdx > commaIdx && commaIdx !== -1) {
+    // Dot is decimal separator, comma is thousands separator (US/EU)
+    s = s.replace(/,/g, '');
+  }
+  return parseFloat(s) || 0;
+}
+
+function normalizeDate(d) {
+  if (!d) return null;
+  const s = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10); // ISO: 2026-02-01
+  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (br) return `${br[3]}-${br[2].padStart(2,'0')}-${br[1].padStart(2,'0')}`; // DD/MM/YYYY
+  if (/^\d{5}$/.test(s)) { // Excel serial number
+    const dt = new Date((parseInt(s) - 25569) * 86400 * 1000);
+    return dt.toISOString().split('T')[0];
+  }
+  return null;
+}
 function extractAction(actions, types) { return actions.filter(a=>types.includes(a.action_type)).reduce((s,a)=>s+parseInt(a.value||0),0); }
 function extractValue(vals, types)   { return vals.filter(a=>types.includes(a.action_type)).reduce((s,a)=>s+parseFloat(a.value||0),0); }
 function brl(n) { return 'R$\u00a0'+parseFloat(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
