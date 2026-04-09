@@ -301,7 +301,7 @@ function renderFromData(d) {
   const ticketMedio = purchases > 0 ? convValue / purchases : 0;
   const cpPurchase  = cac;
 
-  renderKPINegocio({ convValue, spend, roas, cac, ticketMedio });
+  renderKPINegocio({ convValue, spend, roas, cac, ticketMedio, purchases });
   renderKPITrafego({ cpPurchase, purchases, freq, cpm, ctr });
   renderAlertas({ cpPurchase, freq, purchases, campaigns });
   renderFunil({ reach, clicks, lpViews, checkouts, purchases });
@@ -313,7 +313,7 @@ function renderFromData(d) {
 }
 
 // ─── KPI NEGÓCIO ───────────────────────────────
-function renderKPINegocio({ convValue, spend, roas, cac, ticketMedio }) {
+function renderKPINegocio({ convValue, spend, roas, cac, ticketMedio, purchases }) {
   document.getElementById('kpi-negocio').innerHTML = `
     ${kpiCard('green', `
       <div class="card-label">Faturamento (Meta Ads)</div>
